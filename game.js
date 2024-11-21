@@ -1,28 +1,34 @@
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 
-canvas.width = 400;
-canvas.height = 600;
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
 let gravity = 0.5;
 let bird = {
     x: 50,
-    y: 150,
+    y: canvas.height / 2,
     width: 30,
     height: 30,
     velocity: 0,
-    lift: -10
+    lift: -10,
+    images: [
+        new Image(),
+        new Image()
+    ]
 };
+bird.images[0].src = 'path/to/bird1.png'; // Replace with path to your first bird image
+bird.images[1].src = 'path/to/bird2.png'; // Replace with path to your second bird image
 
 let pipes = [];
 let score = 0;
 let pipeGap = 150;
 let lastPipeTime = 0;
 let timeSinceLastPipe = 0;
+let currentBirdImageIndex = 0;
 
 function drawBird() {
-    ctx.fillStyle = 'yellow';
-    ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
+    ctx.drawImage(bird.images[currentBirdImageIndex], bird.x, bird.y, bird.width, bird.height);
 }
 
 function drawPipes() {
@@ -45,6 +51,9 @@ function updateBird() {
         bird.y = 0;
         bird.velocity = 0;
     }
+
+    // Animate bird between images
+    currentBirdImageIndex = (currentBirdImageIndex + 1) % bird.images.length;
 }
 
 function updatePipes() {
@@ -85,22 +94,39 @@ function drawScore() {
 }
 
 function gameOver() {
-    alert(`Game Over! Your score is ${score}`);
-    resetGame();
+    const gameOverScreen = document.createElement('div');
+    gameOverScreen.classList.add('game-over-screen');
+    gameOverScreen.innerHTML = `
+        <h1>Game Over!</h1>
+        <p>Your score is ${score}</p>
+        <button onclick="resetGame()">Play Again</button>
+    `;
+    document.body.appendChild(gameOverScreen);
+
+    document.querySelector('.start-screen').remove();
 }
 
 function resetGame() {
-    bird.y = 150;
+    bird.y = canvas.height / 2;
     bird.velocity = 0;
     pipes = [];
     score = 0;
     timeSinceLastPipe = 0;
+    currentBirdImageIndex = 0;
+
+    document.querySelector('.game-over-screen').remove();
+    gameLoop();
 }
 
 document.addEventListener('keydown', event => {
-    if (event.code === 'Space') {
+    if (event.code === 'Space' && !document.querySelector('.game-over-screen')) {
         bird.velocity = bird.lift;
     }
+});
+
+window.addEventListener('resize', () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 });
 
 function gameLoop() {
@@ -115,4 +141,16 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-gameLoop();
+// Start screen
+const startScreen = document.createElement('div');
+startScreen.classList.add('start-screen');
+startScreen.innerHTML = `
+    <h1>Flappy Bird</h1>
+    <button onclick="startGame()">Start Game</button>
+`;
+document.body.appendChild(startScreen);
+
+function startGame() {
+    document.querySelector('.start-screen').remove();
+    gameLoop();
+}
