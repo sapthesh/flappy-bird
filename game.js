@@ -17,7 +17,7 @@ let bird = {
         new Image()
     ]
 };
-bird.images[0].src = 'path/to/bird1.png'; // Replace with path to your first bird image
+bird.images[0].src = 'bird1.png'; // Replace with path to your first bird image
 bird.images[1].src = 'path/to/bird2.png'; // Replace with path to your second bird image
 
 let pipes = [];
