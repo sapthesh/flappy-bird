@@ -16,6 +16,9 @@ const pipeWidth = 60;
 const pipeGap = 150;
 const pipeSpeed = 2;
 
+let score = 0;
+let highScore = localStorage.getItem('highScore') || 0;
+
 function drawBird() {
     ctx.fillStyle = 'yellow';
     ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
@@ -65,6 +68,17 @@ function updatePipes() {
             bottom: gapY + pipeGap
         });
     }
+
+    // Increase score when passing a pipe
+    if (pipes.some(pipe => pipe.x + pipeWidth < bird.x && bird.x <= pipe.x)) {
+        score++;
+        document.getElementById('score').innerText = `Score: ${score}`;
+        if (score > highScore) {
+            highScore = score;
+            localStorage.setItem('highScore', highScore);
+            document.getElementById('high-score').innerText = `High Score: ${highScore}`;
+        }
+    }
 }
 
 function gameOver() {
@@ -76,6 +90,8 @@ function resetGame() {
     bird.y = 150;
     bird.velocity = 0;
     pipes = [];
+    score = 0;
+    document.getElementById('score').innerText = `Score: ${score}`;
 }
 
 function gameLoop() {
@@ -97,7 +113,14 @@ document.addEventListener('keydown', event => {
     }
 });
 
-// Initialize the canvas size based on window dimensions
+// Event listener for start button click
+document.getElementById('start-button').addEventListener('click', () => {
+    document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('game-container').style.display = 'block';
+    gameLoop();
+});
+
+// Resize Canvas
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -105,6 +128,3 @@ function resizeCanvas() {
 
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
-
-// Start the game loop
-gameLoop();
