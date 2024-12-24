@@ -12,8 +12,8 @@ let bird = {
 };
 
 let pipes = [];
-const pipeWidth = 60;
-const pipeGap = 150;
+const pipeWidth = 70; // Increased pipe width
+const pipeGap = 200; // Increased pipe gap
 const pipeSpeed = 2;
 
 let score = 0;
@@ -83,7 +83,7 @@ function updatePipes() {
 
 function gameOver() {
     alert('Game Over!');
-    resetGame();
+    document.getElementById('restart-button').style.display = 'block';
 }
 
 function resetGame() {
@@ -92,6 +92,7 @@ function resetGame() {
     pipes = [];
     score = 0;
     document.getElementById('score').innerText = `Score: ${score}`;
+    document.getElementById('restart-button').style.display = 'none';
 }
 
 function gameLoop() {
@@ -116,6 +117,13 @@ document.addEventListener('keydown', event => {
 // Event listener for start button click
 document.getElementById('start-button').addEventListener('click', () => {
     document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('game-container').style.display = 'block';
+    gameLoop();
+});
+
+// Event listener for restart button click
+document.getElementById('restart-button').addEventListener('click', () => {
+    resetGame();
     document.getElementById('game-container').style.display = 'block';
     gameLoop();
 });
