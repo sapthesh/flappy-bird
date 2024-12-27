@@ -1,4 +1,4 @@
-# Flappy Bird Clone
+# Flappy Bird
 
 ## Overview
 This project is a simple clone of the popular game Flappy Bird, built using HTML5, CSS, and JavaScript. The game features a bird that the player controls by pressing the spacebar to navigate through pipes while collecting coins for points.
