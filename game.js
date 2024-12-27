@@ -2,6 +2,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('game-canvas');
     const ctx = canvas.getContext('2d');
 
+    // Load images
+    const birdImage = new Image();
+    birdImage.src = 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/refs/heads/master/sprites/bluebird-downflap.png';
+
+    const pipeImage = new Image();
+    pipeImage.src = 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/refs/heads/master/sprites/pipe-green.png';
+
+    // Game variables
     let bird = {
         x: 50,
         y: 150,
@@ -13,19 +21,20 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     let pipes = [];
-    const pipeWidth = 70; // Adjusted pipe width
-    const pipeGap = 250; // Define pipe gap here
-    const minGap = 200; // Minimum gap between pipes
-    const maxGap = 250; // Maximum gap between pipes
+    const pipeWidth = 70;
+    const pipeGap = 250;
+    const minGap = 200;
+    const maxGap = 250;
     const pipeSpeed = 2;
 
     let coins = [];
-    const coinSize = 20; // Size of the coin
-    const coinScore = 10; // Points for each coin
+    const coinSize = 20;
+    const coinScore = 10;
 
     let score = 0;
     let highScore = localStorage.getItem('highScore') || 0;
-    let gameActive = false; // Flag to track if the game is active
+    let gameActive = false;
+    let gameStarted = false; // Flag to track if the game has started
 
     // Display high score on the start screen
     document.getElementById('high-score').innerText = `High Score: ${highScore}`;
@@ -33,21 +42,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // Hide the game over overlay on page load
     document.getElementById('game-over-overlay').style.display = 'none';
 
+    // Drawing functions
     function drawBird() {
-        ctx.fillStyle = 'yellow';
-        ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
+        ctx.drawImage(birdImage, bird.x, bird.y, bird.width, bird.height);
     }
 
     function drawPipes() {
         pipes.forEach(pipe => {
-            ctx.fillStyle = 'green';
-            ctx.fillRect(pipe.x, 0, pipeWidth, pipe.top);
-            ctx.fillRect(pipe.x, pipe.bottom, pipeWidth, canvas.height - pipe.bottom);
+            ctx.save();
+            ctx.translate(pipe.x, 0);
+            ctx.scale(1, -1);
+            ctx.drawImage(pipeImage, 0, -pipe.top, pipeWidth, pipe.top);
+            ctx.restore();
+            ctx.drawImage(pipeImage, pipe.x, pipe.bottom, pipeWidth, canvas.height - pipe.bottom);
         });
     }
 
     function drawCoins() {
-        ctx.fillStyle = 'gold'; // Color for the coins
+        ctx.fillStyle = 'gold';
         coins.forEach(coin => {
             ctx.beginPath();
             ctx.arc(coin.x, coin.y, coinSize, 0, Math.PI * 2);
@@ -58,109 +70,109 @@ document.addEventListener('DOMContentLoaded', () => {
     function drawScore() {
         ctx.fillStyle = 'black';
         ctx.font = '20px Arial';
-        ctx.fillText(`Score: ${score}`, 10, 30); // Display score on the canvas
+        ctx.fillText(`Score: ${score}`, 10, 30);
     }
 
+    // Update functions
     function updateBird() {
-        bird.velocity += bird.gravity;
-        bird.y += bird.velocity;
+        if (gameStarted) { // Only update bird if the game has started
+            bird.velocity += bird.gravity;
+            bird.y += bird.velocity;
 
-        if (bird.y + bird.height > canvas.height || bird.y < 0) {
-            gameOver();
+            if (bird.y + bird.height > canvas.height || bird.y < 0) {
+                gameOver();
+            }
         }
     }
 
     function updatePipes() {
-        pipes.forEach(pipe => {
-            pipe.x -= pipeSpeed;
+        if (gameStarted) { // Only update pipes if the game has started
+            pipes.forEach(pipe => {
+                pipe.x -= pipeSpeed;
 
-            if (pipe.x + pipeWidth < 0) {
-                pipes.shift(); // Remove off-screen pipes
+                if (pipe.x + pipeWidth < 0) {
+                    pipes.shift();
+                }
+
+                if (
+                    bird.x < pipe.x + pipeWidth &&
+                    bird.x + bird.width > pipe.x &&
+                    (bird.y < pipe.top || bird.y + bird.height > pipe.bottom)
+                ) {
+                    gameOver();
+                }
+            });
+
+            if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 200) {
+                const gapY = Math.floor(Math.random() * (maxGap - minGap)) + minGap;
+                pipes.push({
+                    x: canvas.width,
+                    top: gapY,
+                    bottom: gapY + pipeGap,
+                    passed: false
+                });
             }
 
-            // Collision detection with top and bottom pipes
-            if (
-                bird.x < pipe.x + pipeWidth &&
-                bird.x + bird.width > pipe.x &&
-                (bird.y < pipe.top || bird.y + bird.height > pipe.bottom)
-            ) {
-                gameOver();
-            }
-        });
-
-        // Add new pipes at regular intervals
-        if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 200) {
-            const gapY = Math.floor(Math.random() * (maxGap - minGap)) + minGap;
-            pipes.push({
-                x: canvas.width,
-                top: gapY,
-                bottom: gapY + pipeGap,
-                passed: false // Initialize passed property
+            pipes.forEach(pipe => {
+                if (pipe.x + pipeWidth < bird.x && !pipe.passed) {
+                    score++;
+                    pipe.passed = true;
+                    document.getElementById('score').innerText = `Score: ${score}`;
+                    if (score > highScore) {
+                        highScore = score;
+                        localStorage.setItem('highScore', highScore);
+                        document.getElementById ('high-score').innerText = `High Score: ${highScore}`;
+                    }
+                }
             });
         }
-
-        // Increase score when passing a pipe
-        pipes.forEach(pipe => {
-            if (pipe.x + pipeWidth < bird.x && !pipe.passed) {
-                score++;
-                pipe.passed = true; // Mark this pipe as passed
-                document.getElementById('score').innerText = `Score: ${score}`;
-                if (score > highScore) {
-                    highScore = score;
-                    localStorage.setItem('highScore', highScore);
-                    document.getElementById('high-score').innerText = `High Score: ${highScore}`;
-                }
-            }
-        });
     }
 
     function isCoinPositionValid(coinY) {
-        // Check if the coin's Y position overlaps with any pipes
         for (let pipe of pipes) {
             if (coinY < pipe.top || coinY > pipe.bottom) {
-                return false; // Coin is in a pipe's area
+                return false;
             }
         }
-        return true; // Coin position is valid
+        return true;
     }
 
     function updateCoins() {
-        coins.forEach((coin, index) => {
-            // Check for collision with the bird
-            if (
-                bird.x < coin.x + coinSize &&
-                bird.x + bird.width > coin.x &&
-                bird.y < coin.y + coinSize &&
-                bird.y + bird.height > coin.y
-            ) {
-                score += coinScore; // Increase score
-                document.getElementById('score').innerText = `Score : ${score}`;
-                coins.splice(index, 1); // Remove collected coin
-            }
-        });
+        if (gameStarted) { // Only update coins if the game has started
+            coins.forEach((coin, index) => {
+                if (
+                    bird.x < coin.x + coinSize &&
+                    bird.x + bird.width > coin.x &&
+                    bird.y < coin.y + coinSize &&
+                    bird.y + bird.height > coin.y
+                ) {
+                    score += coinScore;
+                    document.getElementById('score').innerText = `Score: ${score}`;
+                    coins.splice(index, 1);
+                }
+            });
 
-        // Add new coins at random intervals
-        if (Math.random() < 0.02) { // Adjust probability for coin generation
-            const gapY = Math.floor(Math.random() * (canvas.height - 100)) + 50; // Random Y position
-            if (isCoinPositionValid(gapY)) { // Check if the position is valid
-                coins.push({
-                    x: canvas.width,
-                    y: gapY,
-                });
+            if (Math.random() < 0.02) {
+                const gapY = Math.floor(Math.random() * (canvas.height - 100)) + 50;
+                if (isCoinPositionValid(gapY)) {
+                    coins.push({
+                        x: canvas.width,
+                        y: gapY,
+                    });
+                }
             }
+
+            coins.forEach(coin => {
+                coin.x -= pipeSpeed;
+            });
+
+            coins = coins.filter(coin => coin.x + coinSize > 0);
         }
-
-        // Move coins to the left
-        coins.forEach(coin => {
-            coin.x -= pipeSpeed;
-        });
-
-        // Remove off-screen coins
-        coins = coins.filter(coin => coin.x + coinSize > 0);
     }
 
     function gameOver() {
-        gameActive = false; // Set gameActive to false
+        gameActive = false;
+        gameStarted = false; // Reset game started flag
         document.getElementById('game-over-overlay').style.display = 'flex';
     }
 
@@ -168,58 +180,74 @@ document.addEventListener('DOMContentLoaded', () => {
         bird.y = 150;
         bird.velocity = 0;
         pipes = [];
-        coins = []; // Reset coins
+        coins = [];
         score = 0;
         document.getElementById('score').innerText = `Score: ${score}`;
         document.getElementById('game-over-overlay').style.display = 'none';
-        gameActive = true; // Set gameActive to true
-        gameLoop(); // Start the game loop again after resetting the game state
+        gameActive = true;
+        gameStarted = false; // Reset game started flag
     }
 
     function initGame() {
-        console.log("Game Initialized"); // Debugging line
+        console.log("Game Initialized");
         document.getElementById('start-screen').style.display = 'none';
         document.getElementById('game-container').style.display = 'block';
         resetGame();
-        gameLoop();
+        drawBird(); // Draw the bird immediately
+        drawPipes(); // Draw the pipes immediately
     }
 
     function gameLoop() {
-        if (!gameActive) return; // Stop the game loop if the game is not active
+        if (!gameActive) return;
 
-        console.log("Game Loop Running"); // Debugging line
+        console.log("Game Loop Running");
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         drawBird();
         drawPipes();
-        drawCoins(); // Draw coins on the canvas
-        drawScore(); // Call to draw the score on the canvas
+        drawCoins();
+        drawScore();
 
         updateBird();
         updatePipes();
-        updateCoins(); // Update coins
+        updateCoins();
 
         requestAnimationFrame(gameLoop);
     }
 
-    // Event listener for spacebar press to make the bird jump
+    // Event listeners
     document.addEventListener('keydown', event => {
-        if (event.code === 'Space' && gameActive) { // Only allow jumping if the game is active
-            bird.velocity = bird.lift;
+        if (event.code === 'Space') {
+            if (!gameStarted && gameActive) {
+                gameStarted = true; // Set game started flag
+                bird.velocity = bird.lift; // Make the bird jump
+                gameLoop(); // Start the game loop
+            } else if (gameStarted) {
+                bird.velocity = bird.lift; // Make the bird jump
+            }
         }
     });
 
-    // Event listener for start button click
-    document.getElementById('start-button').addEventListener('click', initGame);
+    // Touch controls for mobile
+    canvas.addEventListener('touchstart', event => {
+        event.preventDefault(); // Prevent scrolling
+        if (!gameStarted && gameActive) {
+            gameStarted = true; // Set game started flag
+            bird.velocity = bird.lift; // Make the bird jump
+            gameLoop(); // Start the game loop
+        } else if (gameStarted) {
+            bird.velocity = bird.lift; // Make the bird jump
+        }
+    });
 
-    // Event listener for restart button click
+    document.getElementById('start-button').addEventListener('click', initGame);
     document.getElementById('restart-game-button').addEventListener('click', resetGame);
 
     // Resize Canvas
     function resizeCanvas() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas on resize
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
     window.addEventListener('resize', resizeCanvas);
